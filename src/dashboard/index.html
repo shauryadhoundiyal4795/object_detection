@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Interceptor AI - Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, button, p, h1, h2, h3, th, td, span {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #000000; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen flex flex-col">
+
+    <header class="bg-black border-b border-white/10 px-6 py-4 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+        <div class="flex items-center space-x-3">
+            <div class="h-2.5 w-2.5 bg-white/40 rounded-full"></div>
+            <h1 class="text-lg font-bold tracking-wide text-white">Drone Interceptor Control Center</h1>
+        </div>
+        
+        <nav class="flex bg-white/5 p-1 rounded-lg border border-white/10">
+            <button id="tab-btn-detection" onclick="switchActiveTab('detection')" class="px-5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition bg-white/15 text-white border border-white/20">
+                Detection Overview
+            </button>
+            <button id="tab-btn-tracking" onclick="switchActiveTab('tracking')" class="px-5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition text-white/60 hover:text-white">
+                Tracking Overview
+            </button>
+        </nav>
+    </header>
+
+    <main class="flex-1 p-6 max-w-[1600px] w-full mx-auto grid grid-cols-1 xl:grid-cols-4 gap-6">
+        
+        <div class="xl:col-span-3 flex flex-col space-y-6">
+            
+            <section class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="bg-white/5 border border-white/10 p-4 rounded-xl">
+                    <p class="text-white/50 text-xs font-medium tracking-wide">Frames Logged</p>
+                    <p id="card-total-frames" class="text-2xl font-bold text-white mt-1">0</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 p-4 rounded-xl">
+                    <p class="text-white/50 text-xs font-medium tracking-wide">Total Core Objects</p>
+                    <p id="card-total-objects" class="text-2xl font-bold text-white mt-1">0</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 p-4 rounded-xl">
+                    <p class="text-white/50 text-xs font-medium tracking-wide">Smart Collected Tracks</p>
+                    <p id="card-total-tracks" class="text-2xl font-bold text-white mt-1">0</p>
+                </div>
+                <div class="bg-white/5 border border-white/10 p-4 rounded-xl">
+                    <p class="text-white/50 text-xs font-medium tracking-wide">System State Status</p>
+                    <p class="text-xs font-medium text-white/80 mt-2.5 flex items-center space-x-2">
+                        <span class="inline-block h-2 w-2 rounded-full bg-white/60"></span>
+                        <span>ML Model Active</span>
+                    </p>
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 min-h-[550px]">
+                
+                <section class="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col h-[550px]">
+                    <div class="border-b border-white/10 pb-3 mb-3 flex justify-between items-center">
+                        <h2 class="text-xs font-bold tracking-wide text-white">Detection Timeline Feed</h2>
+                        <span id="timeline-count-badge" class="text-[10px] bg-white/5 px-2 py-0.5 rounded border border-white/10 text-white/60">0 Items</span>
+                    </div>
+                    <div id="timeline-scroll-container" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                        </div>
+                </section>
+
+                <section class="md:col-span-2 bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col h-[550px]">
+                    
+                    <div id="viewer-empty-prompt" class="flex-1 flex flex-col items-center justify-center text-white/40 text-center px-6">
+                        <svg class="h-8 w-8 mb-3 stroke-current" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        <p class="text-xs font-bold tracking-wide text-white">Awaiting Target Selection</p>
+                        <p class="text-xs text-white/40 mt-1 max-w-sm">Select an active timestamp frame sequence node from the leftmost layout timeline matrix block to view current metadata registers.</p>
+                    </div>
+
+                    <div id="viewer-inspect-panel" class="hidden flex-1 flex flex-col space-y-4 h-full">
+                        <div class="bg-white/5 border border-white/10 p-4 rounded-xl flex justify-between items-center">
+                            <div>
+                                <p id="inspect-panel-subtitle" class="text-[10px] font-medium text-white/50 tracking-wide">Active Inspection Target</p>
+                                <h3 id="inspect-frame-title" class="text-sm font-bold text-white mt-0.5">frame_000001.jpg</h3>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[10px] font-medium text-white/50 tracking-wide">Entities Count</p>
+                                <span id="inspect-objects-badge" class="inline-block bg-white/10 border border-white/20 text-white text-xs font-semibold px-3 py-0.5 rounded-full mt-1">0</span>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden min-h-0">
+                            
+                            <div class="border border-white/10 rounded-xl overflow-hidden bg-black flex flex-col h-full">
+                                <div id="table-header-context" class="bg-white/5 border-b border-white/10 px-4 py-2 text-[10px] font-bold tracking-wide text-white/70">
+                                    Spatial Ingestion Output Vectors
+                                </div>
+                                <div class="flex-1 overflow-y-auto p-4">
+                                    <table class="w-full text-left border-collapse">
+                                        <thead id="inspect-table-head">
+                                            </thead>
+                                        <tbody id="inspect-table-rows" class="divide-y divide-white/5 text-xs text-white/90">
+                                            </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="border border-white/10 rounded-xl overflow-hidden bg-black flex flex-col h-full relative">
+                                <div class="bg-white/5 border-b border-white/10 px-4 py-2 text-[10px] font-bold tracking-wide text-white/70">
+                                    Live Telemetry Video Frame Viewfinder
+                                </div>
+                                <div class="flex-1 bg-neutral-950 flex items-center justify-center p-2 overflow-hidden">
+                                    <img id="inspect-image-viewport" src="" alt="Active frame stream lookup panel" class="max-w-full max-h-full object-contain rounded border border-white/5 shadow-lg shadow-black" />
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <section class="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col h-full min-h-[400px] xl:h-auto">
+            <div class="border-b border-white/10 pb-3 mb-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="h-2 w-2 rounded-full bg-white/40"></span>
+                    <h2 class="text-xs font-bold tracking-wide text-white">Future Alert Panel</h2>
+                </div>
+                <span class="text-[9px] font-bold tracking-wide bg-white/10 text-white px-1.5 py-0.5 rounded border border-white/10">Phase 2</span>
+            </div>
+            
+            <div class="flex-1 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-xl p-6 text-center text-white/40 space-y-2">
+                <svg class="h-8 w-8 text-white/30 stroke-current" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <p class="text-xs font-bold tracking-wide text-white/70">System Intercept Hooks Pending</p>
+                <p class="text-[11px] text-white/40 leading-relaxed max-w-xs">This placeholder container framework is set up to capture event alert streams. Real-time logging rules will populate anomaly thresholds in Phase 2.</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API_DETECTIONS = 'http://localhost:8080/api/detections';
+        const API_TRACKS     = 'http://localhost:8080/api/tracks';
+        const IMAGE_BASE_URL = 'http://localhost:8080/images';
+
+        let currentActiveViewMode = 'detection';
+        let cachedDetectionsData = [];
+        let cachedTrackingData   = [];
+
+        async function bootstrapDashboardSubsystems() {
+            try {
+                const resDetections = await fetch(API_DETECTIONS);
+                if (resDetections.ok) cachedDetectionsData = await resDetections.json();
+
+                const resTracks = await fetch(API_TRACKS);
+                if (resTracks.ok) cachedTrackingData = await resTracks.json();
+
+                compileMetricCountersSummary();
+                renderTimelineNavigationList();
+
+            } catch (globalErr) {
+                document.getElementById('timeline-scroll-container').innerHTML = `
+                    <div class="p-4 bg-white/5 border border-white/10 rounded-xl text-xs text-white/60 text-center">
+                        Fatal Error: Communication link with server backend broken. Ensure Crow api_server is compiled and listening.
+                    </div>
+                `;
+            }
+        }
+
+        function compileMetricCountersSummary() {
+            document.getElementById('card-total-frames').innerText = cachedDetectionsData.length;
+            document.getElementById('timeline-count-badge').innerText = `${cachedDetectionsData.length} Frame Nodes`;
+            
+            let objectCounter = 0;
+            cachedDetectionsData.forEach(f => objectCounter += f.objects.length);
+            document.getElementById('card-total-objects').innerText = objectCounter;
+
+            let uniqueTrackIds = new Set();
+            cachedTrackingData.forEach(f => {
+                if(f.tracks) f.tracks.forEach(t => uniqueTrackIds.add(t.track_id));
+            });
+            document.getElementById('card-total-tracks').innerText = uniqueTrackIds.size;
+        }
+
+        function switchActiveTab(targetView) {
+            currentActiveViewMode = targetView;
+            
+            const btnDetection = document.getElementById('tab-btn-detection');
+            const btnTracking  = document.getElementById('tab-btn-tracking');
+
+            if(targetView === 'detection') {
+                btnDetection.className = "px-5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition bg-white/15 text-white border border-white/20";
+                btnTracking.className = "px-5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition text-white/60 hover:text-white";
+                document.getElementById('table-header-context').innerText = "Spatial Ingestion Output Vectors";
+            } else {
+                btnTracking.className = "px-5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition bg-white/15 text-white border border-white/20";
+                btnDetection.className = "px-5 py-1.5 rounded-md text-xs font-semibold tracking-wide transition text-white/60 hover:text-white";
+                document.getElementById('table-header-context').innerText = "ML Intelligent Collection Telemetry";
+            }
+
+            document.getElementById('viewer-empty-prompt').classList.remove('hidden');
+            document.getElementById('viewer-inspect-panel').classList.add('hidden');
+            renderTimelineNavigationList();
+        }
+
+        function renderTimelineNavigationList() {
+            const container = document.getElementById('timeline-scroll-container');
+            container.innerHTML = '';
+
+            // Render timeline nodes based on active filtered dataset records
+            const targetDataset = currentActiveViewMode === 'detection' ? cachedDetectionsData : cachedTrackingData;
+
+            targetDataset.forEach((item, index) => {
+                let count = currentActiveViewMode === 'detection' ? item.objects.length : item.tracks.length;
+                let entityCountStr = currentActiveViewMode === 'detection' ? `${count} Detections` : `${count} Smart Tracks`;
+
+                const card = document.createElement('div');
+                card.className = `p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition flex justify-between items-center group`;
+                card.onclick = () => focusTimelineTargetSelection(index, card);
+                
+                card.innerHTML = `
+                    <div>
+                        <p class="text-xs font-medium tracking-wide text-white">${item.frame}</p>
+                        <p class="text-[10px] text-white/40 mt-0.5">${entityCountStr}</p>
+                    </div>
+                    <div class="h-5 w-5 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-white/40 group-hover:bg-white/10 group-hover:text-white transition">
+                        →
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function focusTimelineTargetSelection(idx, cardElement) {
+            document.querySelectorAll('#timeline-scroll-container > div').forEach(c => {
+                c.classList.remove('border-white/40', 'bg-white/10');
+                c.classList.add('border-white/10', 'bg-white/5');
+            });
+
+            cardElement.classList.remove('border-white/10', 'bg-white/5');
+            cardElement.classList.add('border-white/40', 'bg-white/10');
+
+            document.getElementById('viewer-empty-prompt').className = "hidden";
+            document.getElementById('viewer-inspect-panel').classList.remove('hidden');
+            
+            const tableHead = document.getElementById('inspect-table-head');
+            const rowsContainer = document.getElementById('inspect-table-rows');
+            rowsContainer.innerHTML = '';
+
+            if (currentActiveViewMode === 'detection') {
+                const item = cachedDetectionsData[idx];
+                document.getElementById('inspect-frame-title').innerText = item.frame;
+                document.getElementById('inspect-panel-subtitle').innerText = "Detection Overview View";
+                document.getElementById('inspect-image-viewport').src = `${IMAGE_BASE_URL}/${item.frame}`;
+                document.getElementById('inspect-objects-badge').innerText = item.objects.length;
+
+                tableHead.innerHTML = `
+                    <tr class="text-[10px] tracking-wide text-white/50 border-b border-white/10 font-medium">
+                        <th class="pb-2">Classification</th>
+                        <th class="pb-2">Confidence</th>
+                        <th class="pb-2 text-right">Coordinates</th>
+                    </tr>
+                `;
+
+                if(item.objects.length === 0) {
+                    rowsContainer.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-white/30 italic text-xs">No active elements captured on this frame.</td></tr>`;
+                    return;
+                }
+
+                item.objects.forEach(obj => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-white/5 border-b border-white/10 text-[11px] transition";
+                    tr.innerHTML = `
+                        <td class="py-3 text-white font-medium tracking-wide">${obj.class}</td>
+                        <td class="py-3"><span class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/80 text-[10px] font-medium">${(obj.confidence * 100).toFixed(0)}%</span></td>
+                        <td class="py-3 text-right text-white/50 font-medium">[${obj.bbox.x1.toFixed(0)}, ${obj.bbox.y1.toFixed(0)}]</td>
+                    `;
+                    rowsContainer.appendChild(tr);
+                });
+            } else {
+                const item = cachedTrackingData[idx];
+                document.getElementById('inspect-frame-title').innerText = item.frame;
+                document.getElementById('inspect-panel-subtitle').innerText = "ML Intelligent Ingestion View";
+                document.getElementById('inspect-image-viewport').src = `${IMAGE_BASE_URL}/${item.frame}`;
+                document.getElementById('inspect-objects-badge').innerText = item.tracks.length;
+
+                // NEW HEADERS: Swapping fields to highlight ML model outputs
+                tableHead.innerHTML = `
+                    <tr class="text-[10px] tracking-wide text-white/50 border-b border-white/10 font-medium">
+                        <th class="pb-2">Target Class [ID]</th>
+                        <th class="pb-2">ML Value Score</th>
+                        <th class="pb-2 text-right">Collection Rationale</th>
+                    </tr>
+                `;
+
+                if(item.tracks.length === 0) {
+                    rowsContainer.innerHTML = `<tr><td colspan="3" class="text-center py-6 text-white/30 italic text-xs">No optimized tracking trajectories logged.</td></tr>`;
+                    return;
+                }
+
+                item.tracks.forEach(track => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-white/5 border-b border-white/10 text-[11px] transition";
+                    
+                    // Scale ML score up cleanly to match a basic index rating format out of 100%
+                    const ratingScore = (track.ml_value_score * 100).toFixed(0) + '%';
+                    
+                    tr.innerHTML = `
+                        <td class="py-3 text-white font-medium tracking-wide">${track.class} <span class="text-white/40 text-[10px] ml-1">[ID: ${track.track_id}]</span></td>
+                        <td class="py-3"><span class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white font-semibold text-[10px]">${ratingScore}</span></td>
+                        <td class="py-3 text-right text-white/70 font-medium">${track.ml_rationale}</td>
+                    `;
+                    rowsContainer.appendChild(tr);
+                });
+            }
+        }
+
+        bootstrapDashboardSubsystems();
+    </script>
+</body>
+</html>
